@@ -1,17 +1,20 @@
 package com.example.speech.service.impl;
 
 import com.example.speech.service.SpeechService;
+import com.google.cloud.speech.v1.*;
+import com.google.protobuf.ByteString;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
-import java.lang.module.Configuration;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Set;
 
 @Service
@@ -50,7 +53,7 @@ public class SpeechServiceImpl implements SpeechService {
 
             Files.createDirectories(storageLocation);
 
-            Path fileToStore = storageLocation.resolve(System.currentTimeMillis() + "_" + file.getOriginalFilename());
+            Path fileToStore = storageLocation.resolve(file.getOriginalFilename());
 
             Files.copy(file.getInputStream(),
                     fileToStore,
@@ -68,39 +71,72 @@ public class SpeechServiceImpl implements SpeechService {
         }
     }
 
+    public String speechToText(String fileName, boolean withTimestamps) {
+
+        try {
+            // user can only convert the files uploaded today
+            Path storageLocation = Paths.get(STORAGE_LOCATION
+                            + LocalDateTime
+                            .now()
+                            .format(DateTimeFormatter.ofPattern(STORAGE_DIRECTORY_DATE_FORMAT)))
+                    .toAbsolutePath()
+                    .normalize();
+
+            Path targetFile = storageLocation.resolve(fileName);
+
+            if (!targetFile.toFile().exists()) {
+                throw new IllegalArgumentException("File does not exist.");
+            }
+
+            return this.convertSpeechToText(targetFile);
+
+        } catch(IllegalArgumentException e) {
+            return e.getMessage();
+        }
+        catch(Exception e) {
+            e.printStackTrace();
+            return "Service has encountered an error during transcription.";
+        }
+    }
+
     private String convertSpeechToText(Path audioFile) throws Exception {
 
-        StringBuilder speechTextBuilder = new StringBuilder();
+        StringBuilder speechTextBuilder = new StringBuilder("OUTPUT-TEXT: ");
 
-//        // Assuming Google Speech Client
-//        SpeechClient speechClient = SpeechClient.create();
-//
-//        byte[] data = Files.readAllBytes(audioFile);
-//        ByteString audioBytes = ByteString.copyFrom(data);
-//
-//        RecognitionConfig config = RecognitionConfig.newBuilder()
-//                .setEncoding(RecognitionConfig.AudioEncoding.LINEAR16)
-//                .setLanguageCode("en-US")
-//                .build();
-//
-//        RecognitionAudio audio = RecognitionAudio.newBuilder()
-//                .setContent(audioBytes)
-//                .build();
-//
-//        RecognizeResponse response = speechClient.recognize(config, audio);
-//        List<SpeechRecognitionResult> results = response.getResultsList();
-//
-//        for (SpeechRecognitionResult result : results) {
-//            SpeechRecognitionAlternative alternative = result.getAlternativesList().get(0);
-//            // log.debug("Transcription: {0}", alternative.getTranscript());
-//            speechTextBuilder.append(alternative.getTranscript());
-//        }
+        // Assuming Google Speech Client
+        // This won't work as it need cloud account setup and credentials authentication
+        SpeechClient speechClient = SpeechClient.create();
+
+        byte[] data = Files.readAllBytes(audioFile);
+        ByteString audioBytes = ByteString.copyFrom(data);
+
+        RecognitionConfig config = RecognitionConfig.newBuilder()
+                .setEncoding(RecognitionConfig.AudioEncoding.LINEAR16)
+                .setLanguageCode("en-US")
+                .build();
+
+        RecognitionAudio audio = RecognitionAudio.newBuilder()
+                .setContent(audioBytes)
+                .build();
+
+        RecognizeResponse response = speechClient.recognize(config, audio);
+        List<SpeechRecognitionResult> results = response.getResultsList();
+
+        for (SpeechRecognitionResult result : results) {
+            SpeechRecognitionAlternative alternative = result.getAlternativesList().get(0);
+            // log.debug("Transcription: {0}", alternative.getTranscript());
+            speechTextBuilder.append(alternative.getTranscript());
+            speechTextBuilder.append(StringUtils.SPACE);
+        }
 
         return speechTextBuilder.toString();
     }
 
-    private void convertSpeechToTextWithTimestamps(Configuration config, File audioFile) throws Exception {
-
+    // This method is kept for reference as the library dependency isn't syncing with Maven repo
+//    private void convertSpeechToTextWithTimestamps(Configuration config, File audioFile) throws Exception {
+//
+//        StringBuilder speechTextBuilder = new StringBuilder("OUTPUT-TEXT: ");
+//
 //        StreamSpeechRecognizer recognizer = new StreamSpeechRecognizer(config);
 //
 //        InputStream stream = new FileInputStream(audioFile);
@@ -122,10 +158,12 @@ public class SpeechServiceImpl implements SpeechService {
 //                double startSec = wordResult.getTimeFrame().getStart() / 1000.0;
 //                double endSec = wordResult.getTimeFrame().getEnd() / 1000.0;
 //
-//                log.debug("Word: {0} | Start: {1} | End: {2}}", word, startSec, endSec);
+//                //log.debug("Word: {0} | Start: {1} | End: {2}}", word, startSec, endSec);
+//
+//                speechTextBuilder.append(String.format(" Word: %s | Start: %f | End: %f ", word, startSec, endSec));
 //            }
 //        }
 //
 //        recognizer.stopRecognition();
-    }
+//    }
 }
