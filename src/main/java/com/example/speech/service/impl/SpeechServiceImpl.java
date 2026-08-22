@@ -54,7 +54,7 @@ public class SpeechServiceImpl implements SpeechService {
 
             Files.copy(file.getInputStream(),
                     fileToStore,
-                    StandardCopyOption.ATOMIC_MOVE);
+                    StandardCopyOption.REPLACE_EXISTING);
 
             // log.debug("New file has been stored at {0}: ", fileToStore.toAbsolutePath().normalize());
 
@@ -63,6 +63,7 @@ public class SpeechServiceImpl implements SpeechService {
         } catch (IllegalArgumentException e) {
             return e.getMessage();
         } catch (Exception e) {
+            e.printStackTrace();
             return "Service has encountered an error while processing the uploaded file.";
         }
     }

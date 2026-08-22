@@ -1,4 +1,4 @@
-package com.example.controller;
+package com.example.speech.controller;
 
 import com.example.speech.service.SpeechService;
 import lombok.AllArgsConstructor;
@@ -11,7 +11,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @AllArgsConstructor
-@RequestMapping("/speech/v1")
+@RequestMapping("/v1/speech")
 public class SpeechController {
 
     final SpeechService speechService;
